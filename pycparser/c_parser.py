@@ -984,11 +984,23 @@ class CParser(PLYParser):
 
     def p_direct_declarator_3(self, p):
         """ direct_declarator   : direct_declarator LBRACKET assignment_expression_opt RBRACKET
+                                | direct_declarator LBRACKET STATIC assignment_expression_opt RBRACKET
+                                | direct_declarator LBRACKET CONST assignment_expression_opt RBRACKET
         """
-        arr = c_ast.ArrayDecl(
-            type=None,
-            dim=p[3],
-            coord=p[1].coord)
+        if len(p) > 5:
+            # Have dimension qualifiers
+            # Per C99 6.7.5.3 p7
+            arr = c_ast.ArrayDecl(
+                type=None,
+                dim=p[4],
+                dim_quals=[p[3]],
+                coord=p[1].coord)
+        else:
+            arr = c_ast.ArrayDecl(
+                type=None,
+                dim=p[3],
+                dim_quals=[],
+                coord=p[1].coord)
 
         p[0] = self._type_modify_decl(decl=p[1], modifier=arr)
 
@@ -1000,6 +1012,7 @@ class CParser(PLYParser):
         arr = c_ast.ArrayDecl(
             type=None,
             dim=c_ast.ID(p[3], self._coord(p.lineno(3))),
+            dim_quals=[],
             coord=p[1].coord)
 
         p[0] = self._type_modify_decl(decl=p[1], modifier=arr)
@@ -1211,6 +1224,7 @@ class CParser(PLYParser):
         arr = c_ast.ArrayDecl(
             type=None,
             dim=p[3],
+            dim_quals=[],
             coord=p[1].coord)
 
         p[0] = self._type_modify_decl(decl=p[1], modifier=arr)
@@ -1221,6 +1235,7 @@ class CParser(PLYParser):
         p[0] = c_ast.ArrayDecl(
             type=c_ast.TypeDecl(None, None, None),
             dim=p[2],
+            dim_quals=[],
             coord=self._coord(p.lineno(1)))
 
     def p_direct_abstract_declarator_4(self, p):
@@ -1229,6 +1244,7 @@ class CParser(PLYParser):
         arr = c_ast.ArrayDecl(
             type=None,
             dim=c_ast.ID(p[3], self._coord(p.lineno(3))),
+            dim_quals=[],
             coord=p[1].coord)
 
         p[0] = self._type_modify_decl(decl=p[1], modifier=arr)
@@ -1239,6 +1255,7 @@ class CParser(PLYParser):
         p[0] = c_ast.ArrayDecl(
             type=c_ast.TypeDecl(None, None, None),
             dim=c_ast.ID(p[3], self._coord(p.lineno(3))),
+            dim_quals=[],
             coord=self._coord(p.lineno(1)))
 
     def p_direct_abstract_declarator_6(self, p):
