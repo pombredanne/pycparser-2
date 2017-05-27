@@ -4,7 +4,7 @@ import unittest
 # Run from the root dir
 sys.path.insert(0, '.')
 
-from pycparser import c_parser, c_generator
+from pycparser import c_parser, c_generator, c_ast
 
 _c_parser = c_parser.CParser(
                 lex_optimize=False,
@@ -21,6 +21,7 @@ def compare_asts(ast1, ast2):
             return False
         ast1 = ast1[1]
         ast2 = ast2[1]
+        return compare_asts(ast1, ast2)
     for attr in ast1.attr_names:
         if getattr(ast1, attr) != getattr(ast2, attr):
             return False
@@ -32,6 +33,29 @@ def compare_asts(ast1, ast2):
 
 def parse_to_ast(src):
     return _c_parser.parse(src)
+
+
+class TestFunctionDeclGeneration(unittest.TestCase):
+    class _FuncDeclVisitor(c_ast.NodeVisitor):
+        def __init__(self):
+            self.stubs = []
+
+        def visit_FuncDecl(self, node):
+            gen = c_generator.CGenerator()
+            self.stubs.append(gen.visit(node))
+
+    def test_partial_funcdecl_generation(self):
+        src = r'''
+            void noop(void);
+            void *something(void *thing);
+            int add(int x, int y);'''
+        ast = parse_to_ast(src)
+        v = TestFunctionDeclGeneration._FuncDeclVisitor()
+        v.visit(ast)
+        self.assertEqual(len(v.stubs), 3)
+        self.assertTrue(r'void noop(void)' in v.stubs)
+        self.assertTrue(r'void *something(void *thing)' in v.stubs)
+        self.assertTrue(r'int add(int x, int y)' in v.stubs)
 
 
 class TestCtoC(unittest.TestCase):
@@ -46,7 +70,8 @@ class TestCtoC(unittest.TestCase):
             AST.
         """
         src2 = self._run_c_to_c(src)
-        self.assertTrue(compare_asts(parse_to_ast(src), parse_to_ast(src2)), src2)
+        self.assertTrue(compare_asts(parse_to_ast(src), parse_to_ast(src2)),
+                        src2)
 
     def test_trivial_decls(self):
         self._assert_ctoc_correct('int a;')
@@ -57,6 +82,19 @@ class TestCtoC(unittest.TestCase):
         self._assert_ctoc_correct('int** (*a)(void);')
         self._assert_ctoc_correct('int** (*a)(void*, int);')
         self._assert_ctoc_correct('int (*b)(char * restrict k, float);')
+        self._assert_ctoc_correct('int test(const char* const* arg);')
+        self._assert_ctoc_correct('int test(const char** const arg);')
+
+        #s = 'int test(const char* const* arg);'
+        #parse_to_ast(s).show()
+
+    def test_ternary(self):
+        self._assert_ctoc_correct('''
+            int main(void)
+            {
+                int a, b;
+                (a == 0) ? (b = 1) : (b = 2);
+            }''')
 
     def test_casts(self):
         self._assert_ctoc_correct(r'''
@@ -142,6 +180,19 @@ class TestCtoC(unittest.TestCase):
            int i[1][1] = { { 1 } };
         }''')
 
+    def test_nest_named_initializer(self):
+        self._assert_ctoc_correct(r'''struct test
+            {
+                int i;
+                struct test_i_t
+                {
+                    int k;
+                } test_i;
+                int j;
+            };
+            struct test test_var = {.i = 0, .test_i = {.k = 1}, .j = 2};
+        ''')
+
     def test_expr_list_in_initializer_list(self):
         self._assert_ctoc_correct(r'''
         int main()
@@ -194,6 +245,41 @@ class TestCtoC(unittest.TestCase):
                 (a = b, (b = c, c = a));
             }
         ''')
+
+    def test_comma_operator_funcarg(self):
+        self._assert_ctoc_correct(r'''
+            void f(int x) { return x; }
+            int main(void) { f((1, 2)); return 0; }
+        ''')
+
+    def test_comma_op_in_ternary(self):
+        self._assert_ctoc_correct(r'''
+            void f() {
+                (0, 0) ? (0, 0) : (0, 0);
+            }
+        ''')
+
+    def test_comma_op_assignment(self):
+        self._assert_ctoc_correct(r'''
+            void f() {
+                i = (a, b, c);
+            }
+        ''')
+
+    def test_pragma(self):
+        self._assert_ctoc_correct(r'''
+            #pragma foo
+            void f() {
+                #pragma bar
+                i = (a, b, c);
+            }
+        ''')
+
+    def test_compound_literal(self):
+        self._assert_ctoc_correct('char **foo = (char *[]){ "x", "y", "z" };')
+        self._assert_ctoc_correct('int i = ++(int){ 1 };')
+        self._assert_ctoc_correct('struct foo_s foo = (struct foo_s){ 1, 2 };')
+
 
 if __name__ == "__main__":
     unittest.main()

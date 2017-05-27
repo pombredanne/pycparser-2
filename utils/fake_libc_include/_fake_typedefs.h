@@ -12,8 +12,18 @@ typedef int __int_least16_t;
 typedef int __uint_least16_t;
 typedef int __int32_t;
 typedef int __uint32_t;
+typedef int __int64_t;
+typedef int __uint64_t;
 typedef int __int_least32_t;
 typedef int __uint_least32_t;
+typedef int __s8;
+typedef int __u8;
+typedef int __s16;
+typedef int __u16;
+typedef int __s32;
+typedef int __u32;
+typedef int __s64;
+typedef int __u64;
 typedef int _LOCK_T;
 typedef int _LOCK_RECURSIVE_T;
 typedef int _off_t;
@@ -71,6 +81,7 @@ typedef int div_t;
 typedef int ldiv_t;
 typedef int lldiv_t;
 typedef int sigset_t;
+typedef int __sigset_t;
 typedef int _sig_func_ptr;
 typedef int sig_atomic_t;
 typedef int __tzrule_type;
@@ -91,6 +102,12 @@ typedef int pthread_spinlock_t;
 typedef int pthread_barrier_t;
 typedef int pthread_barrierattr_t;
 typedef int jmp_buf;
+typedef int rlim_t;
+typedef int sa_family_t;
+typedef int sigjmp_buf;
+typedef int stack_t;
+typedef int siginfo_t;
+typedef int z_stream;
 
 /* C99 exact-width integer types */
 typedef int int8_t;
@@ -134,5 +151,29 @@ typedef int uintmax_t;
 typedef _Bool bool;
 
 typedef int va_list;
+
+/* Xlib objects */
+typedef struct Display Display;
+typedef unsigned long XID;
+typedef unsigned long VisualID;
+typedef XID Window;
+
+/* Mir typedefs */
+typedef void* MirEGLNativeWindowType;
+typedef void* MirEGLNativeDisplayType;
+typedef struct MirConnection MirConnection;
+typedef struct MirSurface MirSurface;
+typedef struct MirSurfaceSpec MirSurfaceSpec;
+typedef struct MirScreencast MirScreencast;
+typedef struct MirPromptSession MirPromptSession;
+typedef struct MirBufferStream MirBufferStream;
+typedef struct MirPersistentId MirPersistentId;
+typedef struct MirBlob MirBlob;
+typedef struct MirDisplayConfig MirDisplayConfig;
+
+/* xcb typedefs */
+typedef struct xcb_connection_t xcb_connection_t;
+typedef uint32_t xcb_window_t;
+typedef uint32_t xcb_visualid_t;
 
 #endif

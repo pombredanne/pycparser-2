@@ -1,5 +1,5 @@
 ===============
-pycparser v2.10
+pycparser v2.17
 ===============
 
 :Author: `Eli Bendersky <http://eli.thegreenplace.net>`_
@@ -33,20 +33,26 @@ Anything that needs C code to be parsed. The following are some uses for
 * Automatic unit-test discovery
 * Adding specialized extensions to the C language
 
+One of the most popular uses of **pycparser** is in the `cffi
+<https://cffi.readthedocs.io/en/latest/>`_ library, which uses it to parse the
+declarations of C functions and types in order to auto-generate FFIs.
+
 **pycparser** is unique in the sense that it's written in pure Python - a very
 high level language that's easy to experiment with and tweak. To people familiar
-with Lex and Yacc, **pycparser**'s code will be simple to understand.
-
+with Lex and Yacc, **pycparser**'s code will be simple to understand. It also
+has no external dependencies (except for a Python interpreter), making it very
+simple to install and deploy.
 
 Which version of C does pycparser support?
 ------------------------------------------
 
 **pycparser** aims to support the full C99 language (according to the standard
-ISO/IEC 9899). This is a new feature in the version 2.x series - earlier
-versions only supported C89.
+ISO/IEC 9899). Some features from C11 are also supported, and patches to support
+more are welcome.
 
-**pycparser** doesn't support any GCC extensions. See the `FAQ
-<https://github.com/eliben/pycparser/wiki/FAQ>`_ for more details.
+**pycparser** supports very few GCC extensions, but it's fairly easy to set
+things up so that it parses code with a lot of GCC-isms successfully. See the
+`FAQ <https://github.com/eliben/pycparser/wiki/FAQ>`_ for more details.
 
 What grammar does pycparser follow?
 -----------------------------------
@@ -57,15 +63,14 @@ standard document
 How is pycparser licensed?
 --------------------------
 
-`New BSD License <http://www.opensource.org/licenses/bsd-license.php>`_
+`BSD license <https://github.com/eliben/pycparser/blob/master/LICENSE>`_.
 
 Contact details
 ---------------
 
 Drop me an email to eliben@gmail.com for any questions regarding **pycparser**.
 For reporting problems with **pycparser** or submitting feature requests, the
-best way is to open an issue on the `pycparser project page
-<https://github.com/eliben/pycparser/>`_.
+best way is to open an `issue <https://github.com/eliben/pycparser/issues>`_.
 
 
 Installing
@@ -74,13 +79,13 @@ Installing
 Prerequisites
 -------------
 
-* **pycparser** was tested on Python 2.6, 2.7 and 3.2, on both Linux and
+* **pycparser** was tested on Python 2.7, 3.4 and 3.5, on both Linux and
   Windows. It should work on any later version (in both the 2.x and 3.x lines)
   as well.
 
 * **pycparser** has no external dependencies. The only non-stdlib library it
   uses is PLY, which is bundled in ``pycparser/ply``. The current PLY version is
-  3.4
+  3.8, retrieved from `<http://www.dabeaz.com/ply/ply-3.8.tar.gz>`_
 
 Installation process
 --------------------
@@ -123,12 +128,10 @@ you import the top-level ``parse_file`` function from the **pycparser** package,
 it will interact with ``cpp`` for you, as long as it's in your PATH, or you
 provide a path to it.
 
-On the vast majority of Linux systems, ``cpp`` is installed and is in the PATH.
-If you're on Windows and don't have ``cpp`` somewhere, you can use the one
-provided in the ``utils`` directory in **pycparser**'s distribution. This
-``cpp`` executable was compiled from the `LCC distribution
-<http://www.cs.princeton.edu/software/lcc/>`_, and is provided under LCC's
-license terms.
+Note also that you can use ``gcc -E`` or ``clang -E`` instead of ``cpp``. See
+the ``using_gcc_E_libc.py`` example for more details. Windows users can download
+and install a binary build of Clang for Windows `from this website
+<http://llvm.org/releases/download.html>`_.
 
 What about the standard C library headers?
 ------------------------------------------
@@ -146,7 +149,9 @@ the semantics of types. It only needs to know whether some token encountered in
 the source is a previously defined type. This is essential in order to be able
 to parse C correctly.
 
-See the ``using_cpp_libc.py`` example for more details.
+See `this blog post
+<http://eli.thegreenplace.net/2015/on-parsing-c-type-declarations-and-fake-headers>`_
+for more details.
 
 Basic usage
 -----------
@@ -187,6 +192,9 @@ directories:
 README.rst:
   This README file.
 
+LICENSE:
+  The pycparser license
+
 setup.py:
   Installation script
 
@@ -199,9 +207,6 @@ pycparser/:
 tests/:
   Unit tests.
 
-utils/cpp.exe:
-  A Windows executable of the C pre-processor suitable for working with pycparser
-
 utils/fake_libc_include:
   Minimal standard C library include files that should allow to parse any C code.
 
@@ -213,7 +218,9 @@ Contributors
 
 Some people have contributed to **pycparser** by opening issues on bugs they've
 found and/or submitting patches. The list of contributors is in the CONTRIBUTORS
-file in the source distribution.
+file in the source distribution. Once **pycparser** moved to Github, I stopped
+updating this list because Github does a much better job at tracking
+contributions.
 
 CI Status
 =========
@@ -225,3 +232,8 @@ CI Status
   :align: center
   :target: https://travis-ci.org/eliben/pycparser
 
+AppVeyor also helps run tests on Windows:
+
+.. image:: https://ci.appveyor.com/api/projects/status/wrup68o5y8nuk1i9?svg=true
+  :align: center
+  :target: https://ci.appveyor.com/project/eliben/pycparser/

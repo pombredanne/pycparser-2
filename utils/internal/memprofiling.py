@@ -1,4 +1,5 @@
 import sys
+from pycparser import parse_file
 from pycparser.c_ast import *
 from pycparser.c_parser import CParser, Coord, ParseError
 from pycparser.c_lexer import CLexer
@@ -74,14 +75,47 @@ class NodeVisitor(object):
         self.current_parent = oldparent
 
 
-if __name__ == "__main__":
-    source_code = r'''
+def heapyprofile():
+    # pip install guppy
+    # [works on python 2.7, AFAIK]
+    from guppy import hpy
+    import gc
 
-void f(int x[10]);
+    hp = hpy()
+    ast = parse_file('/tmp/197.c')
+    gc.collect()
+    h = hp.heap()
+    print(h)
+
+
+def memprofile():
+    import resource
+    import tracemalloc
+
+    tracemalloc.start()
+
+    ast = parse_file('/tmp/197.c')
+
+    print('Memory usage: %s (kb)' %
+            resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+
+    snapshot = tracemalloc.take_snapshot()
+    print("[ tracemalloc stats ]")
+    for stat in snapshot.statistics('lineno')[:20]:
+        print(stat)
+
+
+if __name__ == "__main__":
+    source_code = r'''void foo() {
+    L"hi" L"there";
+}
     '''
 
-    parser = CParser()
-    ast = parser.parse(source_code, filename='zz')
-    ast.show(showcoord=False, attrnames=True, nodenames=True)
+    memprofile()
+    #heapyprofile()
+
+    #parser = CParser()
+    #ast = parser.parse(source_code, filename='zz')
+    #ast.show(showcoord=True, attrnames=True, nodenames=True)
 
 

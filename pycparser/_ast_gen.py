@@ -7,7 +7,7 @@
 # The design of this module was inspired by astgen.py from the
 # Python 2.5 code-base.
 #
-# Copyright (C) 2008-2013, Eli Bendersky
+# Eli Bendersky [http://eli.thegreenplace.net]
 # License: BSD
 #-----------------------------------------------------------------
 import pprint
@@ -92,10 +92,14 @@ class NodeCfg(object):
 
         if self.all_entries:
             args = ', '.join(self.all_entries)
+            slots = ', '.join("'{0}'".format(e) for e in self.all_entries)
+            slots += ", 'coord', '__weakref__'"
             arglist = '(self, %s, coord=None)' % args
         else:
+            slots = "'coord', '__weakref__'"
             arglist = '(self, coord=None)'
 
+        src += "    __slots__ = (%s)\n" % slots
         src += "    def __init__%s:\n" % arglist
 
         for name in self.all_entries + ['coord']:
@@ -128,7 +132,7 @@ class NodeCfg(object):
         return src
 
     def _gen_attr_names(self):
-        src = "    attr_names = (" + ''.join("%r," % nm for nm in self.attr) + ')'
+        src = "    attr_names = (" + ''.join("%r, " % nm for nm in self.attr) + ')'
         return src
 
 
@@ -146,7 +150,7 @@ r'''#-----------------------------------------------------------------
 #
 # AST Node classes.
 #
-# Copyright (C) 2008-2013, Eli Bendersky
+# Eli Bendersky [http://eli.thegreenplace.net]
 # License: BSD
 #-----------------------------------------------------------------
 
@@ -157,6 +161,7 @@ import sys
 
 
 class Node(object):
+    __slots__ = ()
     """ Abstract base class for AST nodes.
     """
     def children(self):

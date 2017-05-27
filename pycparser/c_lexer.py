@@ -3,7 +3,7 @@
 #
 # CLexer class: lexer for the C language
 #
-# Copyright (C) 2008-2013, Eli Bendersky
+# Eli Bendersky [http://eli.thegreenplace.net]
 # License: BSD
 #------------------------------------------------------------------------------
 import re
@@ -52,8 +52,8 @@ class CLexer(object):
         # Allow either "# line" or "# <num>" to support GCC's
         # cpp output
         #
-        self.line_pattern = re.compile('([ \t]*line\W)|([ \t]*\d+)')
-        self.pragma_pattern = re.compile('[ \t]*pragma\W')
+        self.line_pattern = re.compile(r'([ \t]*line\W)|([ \t]*\d+)')
+        self.pragma_pattern = re.compile(r'[ \t]*pragma\W')
 
     def build(self, **kwargs):
         """ Builds the lexer from the specification. Must be
@@ -102,10 +102,11 @@ class CLexer(object):
     keywords = (
         '_BOOL', '_COMPLEX', 'AUTO', 'BREAK', 'CASE', 'CHAR', 'CONST',
         'CONTINUE', 'DEFAULT', 'DO', 'DOUBLE', 'ELSE', 'ENUM', 'EXTERN',
-        'FLOAT', 'FOR', 'GOTO', 'IF', 'INLINE', 'INT', 'LONG', 'REGISTER',
+        'FLOAT', 'FOR', 'GOTO', 'IF', 'INLINE', 'INT', 'LONG',
+        'REGISTER', 'OFFSETOF',
         'RESTRICT', 'RETURN', 'SHORT', 'SIGNED', 'SIZEOF', 'STATIC', 'STRUCT',
         'SWITCH', 'TYPEDEF', 'UNION', 'UNSIGNED', 'VOID',
-        'VOLATILE', 'WHILE',
+        'VOLATILE', 'WHILE', '__INT128',
     )
 
     keyword_map = {}
@@ -129,7 +130,7 @@ class CLexer(object):
         'TYPEID',
 
         # constants
-        'INT_CONST_DEC', 'INT_CONST_OCT', 'INT_CONST_HEX',
+        'INT_CONST_DEC', 'INT_CONST_OCT', 'INT_CONST_HEX', 'INT_CONST_BIN',
         'FLOAT_CONST', 'HEX_FLOAT_CONST',
         'CHAR_CONST',
         'WCHAR_CONST',
@@ -170,7 +171,9 @@ class CLexer(object):
         'ELLIPSIS',
 
         # pre-processor
-        'PPHASH',      # '#'
+        'PPHASH',       # '#'
+        'PPPRAGMA',     # 'pragma'
+        'PPPRAGMASTR',
     )
 
     ##
@@ -183,12 +186,15 @@ class CLexer(object):
 
     hex_prefix = '0[xX]'
     hex_digits = '[0-9a-fA-F]+'
+    bin_prefix = '0[bB]'
+    bin_digits = '[01]+'
 
     # integer constants (K&R2: A.2.5.1)
     integer_suffix_opt = r'(([uU]ll)|([uU]LL)|(ll[uU]?)|(LL[uU]?)|([uU][lL])|([lL][uU]?)|[uU])?'
     decimal_constant = '(0'+integer_suffix_opt+')|([1-9][0-9]*'+integer_suffix_opt+')'
     octal_constant = '0[0-7]*'+integer_suffix_opt
     hex_constant = hex_prefix+hex_digits+integer_suffix_opt
+    bin_constant = bin_prefix+bin_digits+integer_suffix_opt
 
     bad_octal_constant = '0[0-7]*[89]'
 
@@ -215,7 +221,7 @@ class CLexer(object):
     string_char = r"""([^"\\\n]|"""+escape_sequence+')'
     string_literal = '"'+string_char+'*"'
     wstring_literal = 'L'+string_literal
-    bad_string_literal = '"'+string_char+'*'+bad_escape+string_char+'*"'
+    bad_string_literal = '"'+string_char+'*?'+bad_escape+string_char+'*"'
 
     # floating constants (K&R2: A.2.5.3)
     exponent_part = r"""([eE][-+]?[0-9]+)"""
@@ -270,7 +276,6 @@ class CLexer(object):
 
     def t_ppline_NEWLINE(self, t):
         r'\n'
-
         if self.pp_line is None:
             self._error('line number missing in #line', t)
         else:
@@ -300,15 +305,14 @@ class CLexer(object):
 
     def t_pppragma_PPPRAGMA(self, t):
         r'pragma'
-        pass
+        return t
 
-    t_pppragma_ignore = ' \t<>.-{}();+-*/$%@&^~!?:,0123456789'
+    t_pppragma_ignore = ' \t'
 
-    @TOKEN(string_literal)
-    def t_pppragma_STR(self, t): pass
-
-    @TOKEN(identifier)
-    def t_pppragma_ID(self, t): pass
+    def t_pppragma_STR(self, t):
+        '.+'
+        t.type = 'PPPRAGMASTR'
+        return t
 
     def t_pppragma_error(self, t):
         self._error('invalid #pragma directive', t)
@@ -417,6 +421,10 @@ class CLexer(object):
 
     @TOKEN(hex_constant)
     def t_INT_CONST_HEX(self, t):
+        return t
+
+    @TOKEN(bin_constant)
+    def t_INT_CONST_BIN(self, t):
         return t
 
     @TOKEN(bad_octal_constant)
